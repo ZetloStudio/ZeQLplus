@@ -94,7 +94,7 @@ fn keyboard_left(mut app App) {
 		.table_list {
 			app.table_list.move(.left, 1)
 		}
-		.sql {
+		.sql_view {
 			if app.cursor_location.x > layout['sql']['input_x'] {
 				app.cursor_location.x -= 1
 			}
@@ -110,7 +110,7 @@ fn keyboard_right(mut app App) {
 		.table_list {
 			app.table_list.move(.right, 1)
 		}
-		.sql {
+		.sql_view {
 			if app.cursor_location.x < layout['sql']['input_x'] + app.sql_statement.len {
 				app.cursor_location.x += 1
 			}
@@ -122,7 +122,7 @@ fn keyboard_right(mut app App) {
 }
 
 fn keyboard_alpha(mut app App, alpha string) {
-	if app.active_view != .sql {
+	if app.active_view != .sql_view {
 		return
 	}
 
@@ -135,7 +135,7 @@ fn keyboard_alpha(mut app App, alpha string) {
 }
 
 fn keyboard_backspace(mut app App) {
-	if app.active_view != .sql {
+	if app.active_view != .sql_view {
 		return
 	}
 
@@ -159,7 +159,7 @@ fn keyboard_enter(mut app App) {
 				app.active_view = .result
 			}
 		}
-		.sql {
+		.sql_view {
 			app.exec_sql(app.sql_statement)
 		}
 		else {}

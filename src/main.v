@@ -61,11 +61,11 @@ fn main() {
 	}
 
 	app.tui = tui.init(
-		init_fn: init
+		init_fn:   init
 		user_data: app
-		event_fn: event
-		frame_fn: frame
+		event_fn:  event
+		frame_fn:  frame
 	)
 
-	app.tui.run()?
+	app.tui.run()!
 }

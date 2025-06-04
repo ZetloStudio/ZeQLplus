@@ -92,7 +92,7 @@ fn (mut app App) draw_table_list() {
 fn (mut app App) draw_sql() {
 	app.tui.reset()
 	app.tui.draw_text(layout['sql']['input_x'], layout['sql']['input_y'], app.sql_statement)
-	if app.active_view == .sql {
+	if app.active_view == .sql_view {
 		app.tui.show_cursor()
 	}
 }
@@ -163,9 +163,9 @@ fn (mut app App) draw_info_footer() {
 	mut instructions := '[TAB: Next Panel]  '
 	instructions += if app.active_view == .table_list {
 		'[ENTER: Load Table]'
-	} else if app.active_view == .sql && !is_windows {
+	} else if app.active_view == .sql_view && !is_windows {
 		'[ENTER: Execute SQL  Ctrl-K: Clear]'
-	} else if app.active_view == .sql && is_windows {
+	} else if app.active_view == .sql_view && is_windows {
 		'[ENTER: Execute SQL]'
 	} else if !app.db.custom_pagination {
 		'[F4: Prev Page  F5: Next Page]'
@@ -174,7 +174,7 @@ fn (mut app App) draw_info_footer() {
 	}
 	instructions += '  [ESC: Quit]'
 
-	version := 'v1.0'
+	version := 'v1.1'
 
 	padding_size := math.max((app.tui.window_width - instructions.len) / 2, min_padding)
 

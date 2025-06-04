@@ -29,11 +29,12 @@ fn (mut app App) load_table_list() {
 		conn.close() or { panic(err) }
 	}
 
-	data, code := conn.exec("SELECT name FROM sqlite_master WHERE type='table'")
-	if code == 101 {
-		for table in data {
-			app.table_list.data << table.vals[0]
-		}
+	data := conn.exec("SELECT name FROM sqlite_master WHERE type='table'") or {
+		app.error = err.msg()
+		return
+	}
+	for table in data {
+		app.table_list.data << table.vals[0]
 	}
 
 	app.table_list.data.sort()
@@ -44,8 +45,8 @@ fn (mut app App) load_table(table_name string) {
 	app.exec_sql('SELECT * FROM ${table_name};')
 }
 
-fn (mut app App) exec_sql(sql string) ? {
-	if sql.len == 0 {
+fn (mut app App) exec_sql(sql_query string) ? {
+	if sql_query.len == 0 {
 		return
 	}
 
@@ -56,44 +57,43 @@ fn (mut app App) exec_sql(sql string) ? {
 		conn.close() or { panic(err) }
 	}
 
-	query := enforce_limit(mut app, sql)
-	data, code := conn.exec(query)
-	if code == 101 {
-		app.db.data = data
+	query := enforce_limit(mut app, sql_query)
+	data := conn.exec(query) or {
+		app.error = err.msg()
+		return
+	}
+	app.db.data = data
 
-		get_query_columns(mut app, sql)
-		app.calculate_col_widths()
+	get_query_columns(mut app, sql_query)
+	app.calculate_col_widths()
 
-		// SETUP DATA IN VIEW FROM DB TABLE
-		app.result.reset()
-		for row in app.db.data {
-			mut sb := strings.new_builder(row.vals.len)
-			for i in 0 .. row.vals.len {
-				sb.write_string(app.col_with_padding(row.vals[i], i))
-			}
-			app.result.data << sb.str()
+	// SETUP DATA IN VIEW FROM DB TABLE
+	app.result.reset()
+	for row in app.db.data {
+		mut sb := strings.new_builder(row.vals.len)
+		for i in 0 .. row.vals.len {
+			sb.write_string(app.col_with_padding(row.vals[i], i))
 		}
-	} else {
-		app.error = 'Error with query!'
+		app.result.data << sb.str()
 	}
 
-	if sql.to_lower().starts_with('drop') || sql.to_lower().starts_with('create') {
+	if sql_query.to_lower().starts_with('drop') || sql_query.to_lower().starts_with('create') {
 		app.load_table_list()
 	}
 
 	app.db.has_next_page = if app.db.data.len == max_per_page { true } else { false }
 
-	app.sql_statement = '${sql}'
+	app.sql_statement = '${sql_query}'
 	app.cursor_location.set_line_end(mut app)
 	app.redraw = true
 }
 
-fn enforce_limit(mut app App, sql string) string {
-	mut parts := sql.to_lower().trim(';').split(' ')
+fn enforce_limit(mut app App, sql_query string) string {
+	mut parts := sql_query.to_lower().trim(';').split(' ')
 
 	// Only apply limit to select queries
 	if parts.index('select') != 0 {
-		return sql
+		return sql_query
 	}
 
 	has_limit_index := parts.index('limit')
@@ -103,7 +103,7 @@ fn enforce_limit(mut app App, sql string) string {
 
 	if has_limit_index > 0 || has_offset_index > 0 {
 		app.db.custom_pagination = true
-		return sql
+		return sql_query
 	}
 
 	app.db.custom_pagination = false
@@ -125,20 +125,23 @@ fn enforce_limit(mut app App, sql string) string {
 	return parts.join(' ')
 }
 
-fn get_query_columns(mut app App, sql string) {
+fn get_query_columns(mut app App, sql_query string) {
 	app.db.table_cols = []
 
-	if sql.to_lower().starts_with('select * from') {
+	if sql_query.to_lower().starts_with('select * from') {
 		// They want the whole table, work out the table name to get all columns
-		s := sql.split(' ')
+		s := sql_query.split(' ')
 		if s.len >= 3 {
 			get_table_columns(mut app, s[3].trim(';'))
 		}
-	} else if sql.to_lower().starts_with('select ') {
+	} else if sql_query.to_lower().starts_with('select ') {
 		// NOTE: this is just a simple split of any words separated by ','
 		// between SELECT & FROM - will only work with simple queries
-		from_idx := sql.to_lower().index('from')
-		all_cols := sql.substr('select'.len, from_idx)
+		from_idx := sql_query.to_lower().index('from') or {
+			app.error = 'Invalid SQL: no FROM clause'
+			return
+		}
+		all_cols := sql_query.substr('select'.len, from_idx)
 		cols := all_cols.split(',')
 
 		for col in cols {
@@ -150,10 +153,10 @@ fn get_query_columns(mut app App, sql string) {
 			}
 
 			c := Column{
-				name: col_name.trim_space()
+				name:     col_name.trim_space()
 				datatype: 'text'
-				notnull: false
-				pk: false
+				notnull:  false
+				pk:       false
 			}
 
 			app.db.table_cols << c
@@ -167,16 +170,17 @@ fn get_table_columns(mut app App, table_name string) {
 		conn.close() or { panic(err) }
 	}
 
-	data, code := conn.exec('PRAGMA table_info(${table_name})')
-	if code == 101 {
-		for row in data {
-			col := Column{
-				name: row.vals[1]
-				datatype: row.vals[2]
-				notnull: row.vals[3] == '1'
-				pk: row.vals[5] == '1'
-			}
-			app.db.table_cols << col
+	data := conn.exec('PRAGMA table_info(${table_name})') or {
+		app.error = err.msg()
+		return
+	}
+	for row in data {
+		col := Column{
+			name:     row.vals[1]
+			datatype: row.vals[2]
+			notnull:  row.vals[3] == '1'
+			pk:       row.vals[5] == '1'
 		}
+		app.db.table_cols << col
 	}
 }

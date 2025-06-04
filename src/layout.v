@@ -40,7 +40,7 @@ fn (mut app App) draw_layout() {
 
 	// SQL
 	app.tui.reset()
-	if app.active_view == .sql {
+	if app.active_view == .sql_view {
 		app.tui.set_color(blue)
 	}
 	app.draw_box(layout['sql']['x1'], layout['sql']['y1'], app.tui.window_width, layout['sql']['y2'],

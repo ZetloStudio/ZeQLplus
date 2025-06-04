@@ -87,16 +87,16 @@ fn (mut v View) move(dir Direction, amount int) {
 
 enum ActiveView {
 	table_list
-	sql
+	sql_view
 	result
 }
 
 fn (a ActiveView) next() ActiveView {
 	match a {
 		.table_list {
-			return .sql
+			return .sql_view
 		}
-		.sql {
+		.sql_view {
 			return .result
 		}
 		.result {
@@ -110,11 +110,11 @@ fn (a ActiveView) prev() ActiveView {
 		.table_list {
 			return .result
 		}
-		.sql {
+		.sql_view {
 			return .table_list
 		}
 		.result {
-			return .sql
+			return .sql_view
 		}
 	}
 }

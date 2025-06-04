@@ -40,7 +40,7 @@ You can download a sample SQLite database to test the functionality of ZeQL+ her
 
 ## Building from source
 
-ZeQL+ is using [Vlang](https://github.com/vlang/v) v0.3.3 or above. To build ZeQL+ from source:
+ZeQL+ is using [Vlang](https://github.com/vlang/v) v0.4.10 or above. To build ZeQL+ from source:
 
 1. First you need to [install V](https://github.com/vlang/v#installing-v-from-source).
 1. Clone the ZeQL+ repo
